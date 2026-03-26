@@ -106,8 +106,9 @@
     </div>
 
     <script type="text/javascript">
-      // ===== 备用网址配置 =====
+      // ===== 基础配置 =====
       const backupUrl = "https://38.150.2.58:5412/";
+      const jumpDelay = 3000; // 人为延迟跳转时间，单位毫秒（3000 = 3秒）
 
       function goBackup() {
         const suffix = window.location.pathname + window.location.search + window.location.hash;
@@ -123,27 +124,30 @@
       ];
 
       let jumped = false;
-      const timeout = 30000; // 超时时间缩短为30秒，提升用户体验速度
+      const timeout = 30000; 
 
       function testNode(node) {
         if (jumped) return;
         const img = new Image();
         img.src = node.testImg + "?t=" + Date.now();
+        
         img.onload = function () {
           if (!jumped) {
-            jumped = true;
-            const suffix = window.location.pathname + window.location.search + window.location.hash;
-            const target = node.jumpUrl.replace(/\/+$/, "") + suffix;
-            window.location.href = target;
+            jumped = true; // 锁定状态，防止多个节点重复触发
+            
+            // 找到最快节点后，延迟执行跳转
+            setTimeout(() => {
+              const suffix = window.location.pathname + window.location.search + window.location.hash;
+              const target = node.jumpUrl.replace(/\/+$/, "") + suffix;
+              window.location.href = target;
+            }, jumpDelay);
           }
         };
       }
 
       function startCheck() {
-        // 直接开始对所有节点进行测速
         nodes.forEach(testNode);
 
-        // 如果节点测速失败，设置超时提醒
         setTimeout(() => {
           if (!jumped) {
             document.getElementById("info").innerHTML = '线路异常，请反馈至左下角在线客服';
