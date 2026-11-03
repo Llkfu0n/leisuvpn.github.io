@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <title>安全验证</title>
     <style>
@@ -22,30 +21,29 @@
         overflow: hidden;
       }
 
-      body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        background-image: linear-gradient(#000, transparent);
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-      }
-
-      /* ===== 主内容（初始隐藏） ===== */
       #main-content {
-        display: none; /* 验证通过前隐藏 */
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        padding: 0 1rem;
+        box-sizing: border-box;
       }
 
       h1 {
-        margin-bottom: 0.5rem;
+        margin: 0 0 0.5rem;
         font-size: 3rem;
         font-weight: bold;
         line-height: 1.33333;
       }
 
       .text {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
         font-size: 1.5rem;
         line-height: 1.33333;
       }
@@ -76,7 +74,12 @@
       @keyframes lds-ellipsis2 { 0% { transform: translate(0, 0); } 100% { transform: translate(10px, 0); } }
       @keyframes lds-ellipsis3 { 0% { transform: scale(1); } 100% { transform: scale(0); } }
 
+      @media (prefers-reduced-motion: reduce) {
+        .lds-ellipsis div { animation: none; opacity: 0.7; }
+      }
+
       #backup-btn {
+        display: none;
         margin-top: 2rem;
         padding: 10px 20px;
         background-color: transparent;
@@ -85,15 +88,16 @@
         border-radius: 6px;
         cursor: pointer;
         font-size: 1rem;
-        transition: all 0.3s;
+        transition: background-color 0.3s, color 0.3s;
       }
 
-      #backup-btn:hover {
+      #backup-btn:hover,
+      #backup-btn:focus-visible {
         background-color: #fff;
         color: #000;
+        outline: none;
       }
 
-      /* ===== 滑块验证容器 ===== */
       #captcha-container {
         display: flex;
         flex-direction: column;
@@ -112,12 +116,14 @@
       .slider-box {
         position: relative;
         width: 300px;
+        max-width: calc(100vw - 2rem);
         height: 45px;
         background-color: #222;
         border: 1px solid #444;
         border-radius: 25px;
         overflow: hidden;
-        box-shadow: 0 0 10px rgba(255,255,255,0.1);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        touch-action: none;
       }
 
       .slider-text {
@@ -130,6 +136,7 @@
         color: #aaa;
         user-select: none;
         z-index: 1;
+        pointer-events: none;
       }
 
       .slider-bg {
@@ -140,6 +147,7 @@
         width: 0;
         background-color: rgba(255, 255, 255, 0.2);
         z-index: 2;
+        pointer-events: none;
       }
 
       .slider-block {
@@ -155,12 +163,19 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        transition: background-color 0.3s;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        transition: background-color 0.3s, left 0.25s ease, box-shadow 0.2s;
+        touch-action: none;
       }
 
-      .slider-block:active {
+      .slider-block.is-dragging {
+        transition: background-color 0.3s;
         cursor: grabbing;
+      }
+
+      .slider-block:focus-visible {
+        outline: 2px solid #4cd964;
+        outline-offset: 2px;
       }
 
       .slider-block::before {
@@ -170,14 +185,15 @@
         font-weight: bold;
       }
 
-      /* 验证成功样式 */
       .slider-box.success .slider-text {
         color: #fff;
       }
+
       .slider-box.success .slider-block {
         background-color: #4cd964;
         cursor: default;
       }
+
       .slider-box.success .slider-block::before {
         content: "✓";
         color: #fff;
@@ -189,41 +205,40 @@
     </style>
   </head>
   <body>
-
-    <!-- ===== 滑块验证拦截层 ===== -->
     <div id="captcha-container">
-      <div class="captcha-title">请完成安全验证</div>
-      <div class="slider-box" id="sliderBox">
+      <div class="captcha-title" id="captchaTitle">请完成安全验证</div>
+      <div
+        class="slider-box"
+        id="sliderBox"
+        role="slider"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+        aria-labelledby="captchaTitle"
+        aria-valuetext="向右滑动滑块验证"
+      >
         <div class="slider-text" id="sliderText">向右滑动滑块验证</div>
         <div class="slider-bg" id="sliderBg"></div>
-        <div class="slider-block" id="sliderBlock"></div>
+        <div class="slider-block" id="sliderBlock" tabindex="0" aria-hidden="true"></div>
       </div>
     </div>
 
-    <!-- ===== 原本的主内容 ===== -->
     <div id="main-content">
       <h1>安全检查</h1>
-      <div class="text" id="info">
+      <div class="text" id="info" aria-live="polite">
         正在为您选择最优线路
-        <div class="lds-ellipsis">
+        <div class="lds-ellipsis" aria-hidden="true">
           <div></div><div></div><div></div><div></div>
         </div>
       </div>
-
-      <button id="backup-btn" onclick="goBackup()">手动进入备用网址</button>
+      <button type="button" id="backup-btn">手动进入备用网址</button>
     </div>
 
-    <script type="text/javascript">
-      // ===== 基础配置 =====
+    <script>
       const backupUrl = "http://154.44.20.58:8080/";
-      const jumpDelay = 3000; // 人为延迟跳转时间，单位毫秒（3000 = 3秒）
+      const jumpDelay = 3000;
+      const timeout = 30000;
 
-      function goBackup() {
-        const suffix = window.location.pathname + window.location.search + window.location.hash;
-        window.location.href = backupUrl.replace(/\/+$/, "") + suffix;
-      }
-
-      // ===== 节点配置 =====
       const nodes = [
         { jumpUrl: "https://apple.airport-ls.top/", testImg: "https://apple.airport-ls.top/images/favicon.ico" },
         { jumpUrl: "https://china.airport-ls.top/", testImg: "https://china.airport-ls.top/images/favicon.ico" },
@@ -232,138 +247,193 @@
       ];
 
       let jumped = false;
-      const timeout = 30000; 
+      let failCount = 0;
+      let timeoutTimer = null;
+      let jumpTimer = null;
+
+      function withPathSuffix(baseUrl) {
+        const suffix = window.location.pathname + window.location.search + window.location.hash;
+        return baseUrl.replace(/\/+$/, "") + suffix;
+      }
+
+      function goBackup() {
+        window.location.href = withPathSuffix(backupUrl);
+      }
+
+      function showRouteError() {
+        if (jumped) return;
+        const info = document.getElementById("info");
+        info.textContent = "线路异常，请尝试手动进入备用网址";
+        document.getElementById("backup-btn").style.display = "inline-block";
+      }
 
       function testNode(node) {
         if (jumped) return;
+
         const img = new Image();
-        img.src = node.testImg + "?t=" + Date.now();
-        
-        img.onload = function () {
-          if (!jumped) {
-            jumped = true; // 锁定状态，防止多个节点重复触发
-            
-            // 找到最快节点后，延迟执行跳转
-            setTimeout(() => {
-              const suffix = window.location.pathname + window.location.search + window.location.hash;
-              const target = node.jumpUrl.replace(/\/+$/, "") + suffix;
-              window.location.href = target;
-            }, jumpDelay);
+        const finishFail = function () {
+          if (jumped) return;
+          failCount += 1;
+          if (failCount >= nodes.length) {
+            clearTimeout(timeoutTimer);
+            showRouteError();
           }
         };
+
+        img.onload = function () {
+          if (jumped) return;
+          jumped = true;
+          clearTimeout(timeoutTimer);
+
+          jumpTimer = setTimeout(function () {
+            window.location.href = withPathSuffix(node.jumpUrl);
+          }, jumpDelay);
+        };
+
+        img.onerror = finishFail;
+        img.src = node.testImg + "?t=" + Date.now();
       }
 
-      // 开始进行节点测速和展现页面
       function startCheck() {
-        // 1. 隐藏验证码，显示测速主页面
         document.getElementById("captcha-container").style.display = "none";
-        document.getElementById("main-content").style.display = "block";
+        document.getElementById("main-content").style.display = "flex";
 
-        // 2. 执行原有的测速逻辑
         nodes.forEach(testNode);
 
-        setTimeout(() => {
-          if (!jumped) {
-            document.getElementById("info").innerHTML = '线路异常，请反馈至左下角在线客服';
-          }
-        }, timeout);
+        timeoutTimer = setTimeout(showRouteError, timeout);
       }
+
+      document.getElementById("backup-btn").addEventListener("click", goBackup);
     </script>
 
-    <!-- ===== 滑块验证交互脚本 (兼容PC与手机端) ===== -->
-    <script type="text/javascript">
-      (function() {
-        const box = document.getElementById('sliderBox');
-        const block = document.getElementById('sliderBlock');
-        const bg = document.getElementById('sliderBg');
-        const text = document.getElementById('sliderText');
-        
+    <script>
+      (function () {
+        const box = document.getElementById("sliderBox");
+        const block = document.getElementById("sliderBlock");
+        const bg = document.getElementById("sliderBg");
+        const text = document.getElementById("sliderText");
+
         let isDrag = false;
         let startX = 0;
-        const maxLeft = box.clientWidth - block.clientWidth; // 最大滑动距离
+        let maxLeft = 0;
+        let currentLeft = 0;
 
-        // 鼠标/手指按下
-        function dragStart(e) {
-          if(box.classList.contains('success')) return;
-          isDrag = true;
-          startX = (e.clientX || e.touches[0].clientX) - block.offsetLeft;
+        function getMaxLeft() {
+          return Math.max(0, box.clientWidth - block.clientWidth);
         }
 
-        // 鼠标/手指移动
+        function setPosition(moveX, withTransition) {
+          currentLeft = moveX;
+          block.classList.toggle("is-dragging", !withTransition && isDrag);
+          if (withTransition) {
+            block.classList.remove("is-dragging");
+          }
+          block.style.left = moveX + "px";
+          bg.style.width = moveX + "px";
+          bg.style.transition = withTransition ? "width 0.25s ease" : "none";
+
+          const percent = maxLeft ? Math.round((moveX / maxLeft) * 100) : 0;
+          box.setAttribute("aria-valuenow", String(percent));
+        }
+
+        function succeed() {
+          isDrag = false;
+          block.classList.remove("is-dragging");
+          box.classList.add("success");
+          text.textContent = "验证通过";
+          box.setAttribute("aria-valuenow", "100");
+          box.setAttribute("aria-valuetext", "验证通过");
+          block.removeAttribute("tabindex");
+          removeListeners();
+          setTimeout(startCheck, 400);
+        }
+
+        function dragStart(e) {
+          if (box.classList.contains("success")) return;
+          if (e.cancelable) e.preventDefault();
+
+          isDrag = true;
+          maxLeft = getMaxLeft();
+          const clientX = e.clientX != null ? e.clientX : e.touches[0].clientX;
+          startX = clientX - block.offsetLeft;
+          block.classList.add("is-dragging");
+          bg.style.transition = "none";
+        }
+
         function dragMove(e) {
           if (!isDrag) return;
-          const clientX = e.clientX || e.touches[0].clientX;
-          let moveX = clientX - startX;
+          if (e.cancelable) e.preventDefault();
 
-          // 边界边界处理
+          const point = e.touches && e.touches.length ? e.touches[0] : e;
+          if (point.clientX == null) return;
+
+          let moveX = point.clientX - startX;
           if (moveX < 0) moveX = 0;
           if (moveX > maxLeft) moveX = maxLeft;
 
-          block.style.left = moveX + 'px';
-          bg.style.width = moveX + 'px';
+          setPosition(moveX, false);
 
-          // 如果滑到最右端，验证成功
           if (moveX >= maxLeft) {
-            isDrag = false;
-            box.classList.add('success');
-            text.innerText = '验证通过';
-            
-            // 移除所有事件监听
-            removeListeners();
-
-            // 成功后延迟 400ms 进入主页面测速，给用户看一眼“验证通过”的反馈
-            setTimeout(startCheck, 400);
+            succeed();
           }
         }
 
-        // 鼠标/手指松开
         function dragEnd() {
           if (!isDrag) return;
           isDrag = false;
-          // 未滑到最右端，复位
-          if (!box.classList.contains('success')) {
-            block.style.left = '0px';
-            bg.style.width = '0px';
+          block.classList.remove("is-dragging");
+
+          if (!box.classList.contains("success")) {
+            setPosition(0, true);
+            box.setAttribute("aria-valuetext", "向右滑动滑块验证");
           }
         }
 
-        // 添加事件监听
-        block.addEventListener('mousedown', dragStart);
-        document.addEventListener('mousemove', dragMove);
-        document.addEventListener('mouseup', dragEnd);
+        function onKeyDown(e) {
+          if (box.classList.contains("success")) return;
 
-        block.addEventListener('touchstart', dragStart);
-        document.addEventListener('touchmove', dragMove);
-        document.addEventListener('touchend', dragEnd);
+          maxLeft = getMaxLeft();
+          const step = Math.max(8, Math.round(maxLeft / 10));
+
+          if (e.key === "ArrowRight" || e.key === "Right") {
+            e.preventDefault();
+            const next = Math.min(maxLeft, currentLeft + step);
+            setPosition(next, false);
+            if (next >= maxLeft) succeed();
+          } else if (e.key === "ArrowLeft" || e.key === "Left") {
+            e.preventDefault();
+            setPosition(Math.max(0, currentLeft - step), false);
+          } else if (e.key === "Home") {
+            e.preventDefault();
+            setPosition(0, true);
+          } else if (e.key === "End") {
+            e.preventDefault();
+            setPosition(maxLeft, false);
+            succeed();
+          }
+        }
 
         function removeListeners() {
-          block.removeEventListener('mousedown', dragStart);
-          document.removeEventListener('mousemove', dragMove);
-          document.removeEventListener('mouseup', dragEnd);
-          block.removeEventListener('touchstart', dragStart);
-          document.removeEventListener('touchmove', dragMove);
-          document.removeEventListener('touchend', dragEnd);
+          block.removeEventListener("mousedown", dragStart);
+          document.removeEventListener("mousemove", dragMove);
+          document.removeEventListener("mouseup", dragEnd);
+          block.removeEventListener("touchstart", dragStart);
+          document.removeEventListener("touchmove", dragMove);
+          document.removeEventListener("touchend", dragEnd);
+          box.removeEventListener("keydown", onKeyDown);
         }
+
+        block.addEventListener("mousedown", dragStart);
+        document.addEventListener("mousemove", dragMove);
+        document.addEventListener("mouseup", dragEnd);
+
+        block.addEventListener("touchstart", dragStart, { passive: false });
+        document.addEventListener("touchmove", dragMove, { passive: false });
+        document.addEventListener("touchend", dragEnd);
+
+        box.addEventListener("keydown", onKeyDown);
+        maxLeft = getMaxLeft();
       })();
     </script>
-
-    <!-- ===== 客服系统保持不变 ===== -->
-    <script>
-  window.chatwootSettings = {"position":"right","type":"standard","launcherTitle":""};
-  (function(d,t) {
-    var BASE_URL="https://chat.lei-su.com";
-    var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-    g.src=BASE_URL+"/packs/js/sdk.js";
-    g.async = true;
-    s.parentNode.insertBefore(g,s);
-    g.onload=function(){
-      window.chatwootSDK.run({
-        websiteToken: '85RpEMJiaD4syZPr3fMEZrHb',
-        baseUrl: BASE_URL
-      })
-    }
-  })(document,"script");
-</script>
-
   </body>
 </html>
